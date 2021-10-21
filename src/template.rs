@@ -1,5 +1,5 @@
-use std::{collections::HashMap, hash::BuildHasher, path::Path, fs};
 use far::{far, Errors};
+use std::{collections::HashMap, fs, hash::BuildHasher, path::Path};
 
 pub fn generate_config<P, H>(path: P, map: &HashMap<&str, &str, H>) -> Result<String, Errors>
 where
