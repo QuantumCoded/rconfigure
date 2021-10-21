@@ -15,7 +15,7 @@ struct ProfileDeserialized {
 struct ProfileTable {
     name: Option<String>,
     settings: Option<Vec<String>>,
-    hooks: Value,
+    hooks: Option<Vec<String>>,
 }
 
 #[derive(Debug)]
