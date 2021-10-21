@@ -1,7 +1,6 @@
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-use toml::Value;
 
 use crate::hook::Hook;
 use crate::setting::{self, Setting};
@@ -21,7 +20,7 @@ struct ProfileTable {
 #[derive(Debug)]
 pub struct Profile {
     name: String,
-    settings: Vec<Setting>,
+    pub settings: Vec<Setting>,
     hooks: Vec<Hook>,
 }
 
@@ -53,7 +52,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
                 settings.push(setting::parse(path));
             } else {
                 // FIXME: use dirs crate
-                let path = PathBuf::from("./config/settings").join(path);
+                let path = PathBuf::from("/home/jeff/.config/rconfigure/settings").join(path);
                 settings.push(setting::parse(path));
             }
         }

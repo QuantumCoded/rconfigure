@@ -12,12 +12,12 @@ pub struct Setting {
 
 impl Setting {
     /// Composes a map from all of the setting targets for a given path
-    fn compose_map<P: AsRef<Path>>(&self, path: P) -> HashMap<String, Value> {
+    pub fn compose_map<P: AsRef<Path>>(&self, path: P) -> HashMap<String, Value> {
         let mut path = if path.as_ref().is_absolute() {
             path.as_ref().to_owned()
         } else {
             // FIXME: use dirs crate
-            Path::new("./config/templates").join(path)
+            Path::new("/home/jeff/.config/rconfigure/templates").join(path)
         };
 
         let mut map: HashMap<String, Value> = HashMap::new();
@@ -74,6 +74,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
 
     // sort the setting blocks based on path type
     for (target, table) in setting {
+        // TODO: error if a target value is an unsupported type
         match target.as_str() {
             "setting" => setting_table = Some(table),
             "global" => global_target = Some(table),
@@ -84,7 +85,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
                     targets.push((path.to_owned(), table));
                 } else {
                     // FIXME: use dirs crate
-                    let path = PathBuf::from("./config/templates").join(path);
+                    let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
                     targets.push((path, table));
                 }
             }
