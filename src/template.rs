@@ -1,11 +1,11 @@
 use far::{far, Errors};
 use std::path::{Path, PathBuf};
-use std::{collections::HashMap, fs};
+use std::{collections::hash_map::RandomState, collections::HashMap, fs, iter::FromIterator};
 
 /// Parses a template file and generates tries to generate the completed config file from it
 pub fn generate_config<P: AsRef<Path>>(
     path: P,
-    map: &HashMap<&str, &str>,
+    map: HashMap<String, String>,
 ) -> Result<(PathBuf, String), Errors> {
     let data = fs::read_to_string(path.as_ref()).unwrap();
     let mut lines = data.lines();
@@ -43,5 +43,13 @@ pub fn generate_config<P: AsRef<Path>>(
         }
     }
 
-    Ok((header.to_owned(), far(template, map)?))
+    Ok((
+        header.to_owned(),
+        far(
+            template,
+            &HashMap::<&str, &str, RandomState>::from_iter(
+                map.iter().map(|(k, v)| (k.as_str(), v.as_str())),
+            ),
+        )?,
+    ))
 }

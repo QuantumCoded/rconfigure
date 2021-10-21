@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 use toml::Value;
 
-#[derive(Deserialize, Debug, Clone)]
+#[derive(Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TargetValue {
     Boolean(bool),
@@ -16,7 +16,7 @@ pub enum TargetValue {
 
 // TODO: impl Display for TargetValue {}
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct SettingDeserialized {
     #[serde(rename = "setting")]
     setting_table: Option<SettingTable>,
@@ -26,16 +26,17 @@ struct SettingDeserialized {
     targets: HashMap<String, HashMap<String, TargetValue>>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize)]
 struct SettingTable {
     name: Option<String>,
     hooks: Option<Vec<String>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Setting {
     name: String,
     hooks: Vec<Hook>,
+    path: PathBuf,
     global_target: Option<HashMap<String, TargetValue>>,
     targets: Vec<(PathBuf, HashMap<String, TargetValue>)>,
 }
@@ -82,6 +83,24 @@ impl Setting {
         }
 
         map
+    }
+
+    /// Get the paths for all the targeted templates
+    pub fn targets(&self) -> Vec<PathBuf> {
+        self.targets
+            .iter()
+            .map(|(path, ..)| path.to_owned())
+            .collect()
+    }
+
+    /// Get the path of the setting file
+    pub fn path(&self) -> PathBuf {
+        self.path.to_owned()
+    }
+
+    /// Get the name of the setting
+    pub fn name(&self) -> String {
+        self.name.to_owned()
     }
 }
 
@@ -130,6 +149,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
                 .to_string(),
         },
         hooks,
+        path: path.as_ref().to_owned(),
         global_target: setting.global_target,
         targets,
     }

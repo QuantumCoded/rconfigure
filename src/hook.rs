@@ -1,2 +1,2 @@
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Hook;
