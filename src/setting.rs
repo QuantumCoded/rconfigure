@@ -1,18 +1,48 @@
+use crate::hook::Hook;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
-use toml::value::{Table, Value};
+use toml::Value;
+
+#[derive(Deserialize, Debug, Clone)]
+#[serde(untagged)]
+pub enum TargetValue {
+    Boolean(bool),
+    Integer(i64),
+    Float(f64),
+    String(String),
+    Script { script: String, value: Value },
+}
+
+// TODO: impl Display for TargetValue {}
 
 #[derive(Deserialize, Debug)]
+struct SettingDeserialized {
+    #[serde(rename = "setting")]
+    setting_table: Option<SettingTable>,
+    #[serde(rename = "global")]
+    global_target: Option<HashMap<String, TargetValue>>,
+    #[serde(flatten)]
+    targets: HashMap<String, HashMap<String, TargetValue>>,
+}
+
+#[derive(Deserialize, Debug)]
+struct SettingTable {
+    name: Option<String>,
+    hooks: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
 pub struct Setting {
-    setting_table: Option<Table>,
-    global_target: Option<Table>,
-    targets: Vec<(PathBuf, Table)>,
+    name: String,
+    hooks: Vec<Hook>,
+    global_target: Option<HashMap<String, TargetValue>>,
+    targets: Vec<(PathBuf, HashMap<String, TargetValue>)>,
 }
 
 impl Setting {
     /// Composes a map from all of the setting targets for a given path
-    pub fn compose_map<P: AsRef<Path>>(&self, path: P) -> HashMap<String, Value> {
+    pub fn compose_map<P: AsRef<Path>>(&self, path: P) -> HashMap<String, TargetValue> {
         let mut path = if path.as_ref().is_absolute() {
             path.as_ref().to_owned()
         } else {
@@ -20,7 +50,7 @@ impl Setting {
             Path::new("/home/jeff/.config/rconfigure/templates").join(path)
         };
 
-        let mut map: HashMap<String, Value> = HashMap::new();
+        let mut map: HashMap<String, TargetValue> = HashMap::new();
 
         loop {
             // check each of the target paths
@@ -59,7 +89,7 @@ impl Setting {
 pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
     // FIXME: handle errors for file not found
     let s = fs::read_to_string(path.as_ref()).unwrap();
-    let setting: HashMap<String, Table> = match toml::from_str(s.as_str()) {
+    let setting: SettingDeserialized = match toml::from_str(s.as_str()) {
         Ok(value) => value,
         Err(e) => {
             println!("error when parsing setting {:?}", path.as_ref());
@@ -68,33 +98,39 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         }
     };
 
-    let mut setting_table: Option<Table> = None;
-    let mut global_target: Option<Table> = None;
-    let mut targets: Vec<(PathBuf, Table)> = Vec::new();
+    let mut hooks: Vec<Hook> = Vec::new();
+    let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
 
-    // sort the setting blocks based on path type
-    for (target, table) in setting {
-        // TODO: error if a target value is an unsupported type
-        match target.as_str() {
-            "setting" => setting_table = Some(table),
-            "global" => global_target = Some(table),
-            target => {
-                let path = Path::new(target);
+    // TODO: convert all setting hooks into struct form
 
-                if path.is_absolute() {
-                    targets.push((path.to_owned(), table));
-                } else {
-                    // FIXME: use dirs crate
-                    let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
-                    targets.push((path, table));
-                }
-            }
+    // expand paths for all targets
+    for (target, table) in setting.targets {
+        let path = PathBuf::from(target);
+
+        if path.is_absolute() {
+            targets.push((path.to_owned(), table));
+        } else {
+            // FIXME: use dirs crate
+            let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
+            targets.push((path, table));
         }
     }
 
     Setting {
-        setting_table,
-        global_target,
+        name: match setting.setting_table {
+            Some(SettingTable {
+                name: Some(name), ..
+            }) => name,
+            _ => path
+                .as_ref()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string(),
+        },
+        hooks,
+        global_target: setting.global_target,
         targets,
     }
 }

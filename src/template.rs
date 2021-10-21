@@ -1,13 +1,12 @@
 use far::{far, Errors};
-use std::{collections::HashMap, fs, hash::BuildHasher};
 use std::path::{Path, PathBuf};
+use std::{collections::HashMap, fs};
 
 /// Parses a template file and generates tries to generate the completed config file from it
-pub fn generate_config<P, H>(path: P, map: &HashMap<&str, &str, H>) -> Result<(PathBuf, String), Errors>
-where
-    P: AsRef<Path>,
-    H: BuildHasher,
-{
+pub fn generate_config<P: AsRef<Path>>(
+    path: P,
+    map: &HashMap<&str, &str>,
+) -> Result<(PathBuf, String), Errors> {
     let data = fs::read_to_string(path.as_ref()).unwrap();
     let mut lines = data.lines();
     let mut template = String::new();
@@ -16,7 +15,10 @@ where
     let header = match lines.next().map(|s| Path::new(s)) {
         Some(path) => path,
         None => {
-            println!("failed to parse template {:?}, missing header", path.as_ref());
+            println!(
+                "failed to parse template {:?}, missing header",
+                path.as_ref()
+            );
             std::process::exit(1);
         }
     };

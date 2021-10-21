@@ -1,9 +1,8 @@
+use crate::hook::Hook;
+use crate::setting::{self, Setting};
 use serde::Deserialize;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-use crate::hook::Hook;
-use crate::setting::{self, Setting};
 
 #[derive(Deserialize, Debug)]
 struct ProfileDeserialized {
@@ -25,6 +24,7 @@ pub struct Profile {
 }
 
 impl Profile {
+    // TODO: implement a method to check for setting target collisions
     // TODO: implement an apply method that overwrites all the config files
 }
 
