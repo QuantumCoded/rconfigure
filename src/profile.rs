@@ -25,13 +25,17 @@ pub struct Profile {
     hooks: Vec<Hook>,
 }
 
+impl Profile {
+    // TODO: implement an apply method that overwrites all the config files
+}
+
 pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
-    let path = path.as_ref();
     // FIXME: handle errors for file not found
-    let s = fs::read_to_string(path).unwrap();
+    let s = fs::read_to_string(path.as_ref()).unwrap();
     let profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
         Ok(value) => value,
         Err(e) => {
+            println!("error when parsing setting {:?}", path.as_ref());
             println!("{}", e);
             std::process::exit(1);
         }
@@ -60,7 +64,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
     Profile {
         name: profile
             .profile.name
-            .unwrap_or(path.file_name().unwrap().to_str().unwrap().to_string()),
+            .unwrap_or(path.as_ref().file_name().unwrap().to_str().unwrap().to_string()),
         settings,
         hooks,
     }

@@ -10,13 +10,18 @@ pub struct Setting {
     targets: Vec<(PathBuf, Table)>,
 }
 
+impl Setting {
+    // TODO: implement a compose values method that generates the hash map to pass to the templater
+}
+
 /// Parses a setting into its struct representation
 pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
     // FIXME: handle errors for file not found
-    let s = fs::read_to_string(path).unwrap();
+    let s = fs::read_to_string(path.as_ref()).unwrap();
     let setting: HashMap<String, Table> = match toml::from_str(s.as_str()) {
         Ok(value) => value,
         Err(e) => {
+            println!("error when parsing setting {:?}", path.as_ref());
             println!("{}", e);
             std::process::exit(1);
         }
