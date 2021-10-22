@@ -14,8 +14,6 @@ pub enum TargetValue {
     Script { script: String, value: Value },
 }
 
-// TODO: impl Display for TargetValue {}
-
 #[derive(Deserialize)]
 struct SettingDeserialized {
     #[serde(rename = "setting")]

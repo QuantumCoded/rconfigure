@@ -66,7 +66,7 @@ impl Profile {
         if let Some((setting1, setting2, target)) = self.setting_conflict(None) {
             println!("failed to apply profile, found setting conflict!");
             println!(
-                "settings '{}' and '{}' both set values for target {:?}",
+                "settings {:?} and {:?} both set values for target {:?}",
                 setting1.name(),
                 setting2.name(),
                 target
@@ -108,13 +108,14 @@ impl Profile {
                 }
 
                 // FIXME: cache and make sure all config files get generated successfully before applying any
-                match crate::template::generate_config(target, map) {
+                match crate::template::generate_config(&target, map) {
                     Ok((path, contents)) => {
                         // FIXME: handle errors for file not found
                         fs::write(path, contents).unwrap();
                     }
 
                     Err(e) => {
+                        println!("failed to template target {:?} with setting {:?}", target, setting.name());
                         println!("{}", e);
                         std::process::exit(1);
                     }
