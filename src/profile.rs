@@ -1,5 +1,6 @@
-use crate::{script, hook::Hook};
-use crate::setting::{self, Setting};
+use crate::hook::Hook;
+use crate::script::{self, ScriptValue};
+use crate::setting::{self, Setting, TargetValue};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -47,7 +48,6 @@ impl Profile {
             }
         }
 
-        // FIXME: remove duplicate code
         // check for conflicts between the settings of the profile and a new setting
         if let Some(setting) = new_setting {
             for target in setting.targets() {
@@ -81,28 +81,26 @@ impl Profile {
             for target in setting.targets() {
                 let mut map = HashMap::new();
 
-                // populate the string map to template with
+                // populate the string map to template with using target values
                 for (k, v) in setting.compose_map(&target) {
-                    use crate::setting::TargetValue::*;
-
                     match v {
-                        Boolean(b) => {
+                        TargetValue::Boolean(b) => {
                             map.insert(k, b.to_string());
                         }
 
-                        Integer(i) => {
+                        TargetValue::Integer(i) => {
                             map.insert(k, i.to_string());
                         }
 
-                        Float(f) => {
+                        TargetValue::Float(f) => {
                             map.insert(k, f.to_string());
                         }
 
-                        String(s) => {
+                        TargetValue::String(s) => {
                             map.insert(k, s);
                         }
 
-                        Script { script, value } => {
+                        TargetValue::Script { script, value } => {
                             // FIXME: use dirs crate
                             let path = PathBuf::from(script);
                             let path = if path.is_absolute() {
@@ -112,10 +110,30 @@ impl Profile {
                                 PathBuf::from("/home/jeff/.config/rconfigure/scripts").join(path)
                             };
 
-                            let values = script::eval_rhai(path, value, setting, engine);
+                            let returned_values = script::eval_rhai(path, value, setting, engine);
 
-                            for (k, v) in values {
-                                
+                            for (k, v) in returned_values {
+                                match v {
+                                    ScriptValue::Boolean(b) => {
+                                        map.insert(k, b.to_string());
+                                    }
+            
+                                    ScriptValue::Integer(i) => {
+                                        map.insert(k, i.to_string());
+                                    }
+            
+                                    ScriptValue::Float(f) => {
+                                        map.insert(k, f.to_string());
+                                    }
+            
+                                    ScriptValue::String(s) => {
+                                        map.insert(k, s);
+                                    }
+
+                                    ScriptValue::Map(_) => {
+                                        // TODO: flatten recursive script values into dot notation
+                                    }
+                                }
                             }
                         }
                     }

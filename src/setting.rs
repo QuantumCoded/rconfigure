@@ -36,7 +36,6 @@ pub struct Setting {
     path: PathBuf,
     global_target: Option<HashMap<String, TargetValue>>,
     targets: Vec<(PathBuf, HashMap<String, TargetValue>)>,
-    //targets: HashMap<PathBuf, HashMap<String, TargetValue>>,
 }
 
 impl Setting {
@@ -117,7 +116,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
 
     let mut hooks: Vec<Hook> = Vec::new();
     let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
-    //let mut targets: HashMap<PathBuf, HashMap<String, TargetValue>> = HashMap::new();
 
     // TODO: convert all setting hooks into struct form
 
@@ -127,12 +125,10 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
 
         if path.is_absolute() {
             targets.push((path.to_owned(), table));
-            //targets.insert(path.to_owned(), table);
         } else {
             // FIXME: use dirs crate
             let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
             targets.push((path.to_owned(), table));
-            //targets.insert(path, table);
         }
     }
 

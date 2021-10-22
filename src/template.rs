@@ -7,8 +7,6 @@ pub fn generate_config<P: AsRef<Path>>(
     path: P,
     map: HashMap<String, String>,
 ) -> Result<(PathBuf, String), Errors> {
-    print!("{:?}", path.as_ref());
-
     let data = fs::read_to_string(path.as_ref()).unwrap();
     let mut lines = data.lines();
     let mut template = String::new();

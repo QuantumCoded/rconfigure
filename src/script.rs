@@ -1,6 +1,6 @@
 use crate::setting::Setting;
-use rhai::{Engine, EvalAltResult, Scope, serde::to_dynamic, serde::from_dynamic};
-use serde::{Serialize, Deserialize};
+use rhai::{serde::from_dynamic, serde::to_dynamic, Engine, EvalAltResult, Scope};
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -15,6 +15,25 @@ pub enum ScriptValue {
 
 impl ScriptValue {
     // fn flatten(self) -> HashMap<String, String> {}
+
+    /*
+        value = {
+            map: {
+                a: 1,
+                b: 2,
+            },
+
+            str: "string"
+        }
+
+        becomes
+
+        {
+            "value.map.a": "1",
+            "value.map.b": "2",
+            "value.str": "string"
+        }
+    */
 }
 
 pub fn eval_rhai(
@@ -27,7 +46,7 @@ pub fn eval_rhai(
 
     scope.push_constant("value", to_dynamic(value).unwrap());
 
-    match engine.eval_file_with_scope::<rhai::Map>(&mut scope, path) {
+    match engine.eval_file_with_scope::<rhai::Map>(&mut scope, path.clone()) {
         Ok(btree) => {
             let mut map = HashMap::new();
 
@@ -38,10 +57,11 @@ pub fn eval_rhai(
 
             // println!("{:#?}", ScriptValue::Map(map));
 
-            return map
-        },
+            return map;
+        }
 
         Err(e) => {
+            println!("Error in rhai script {:?}", path);
             println!("{}", e);
         }
     };
