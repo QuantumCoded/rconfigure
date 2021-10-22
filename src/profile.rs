@@ -6,7 +6,8 @@ use std::{collections::HashMap, fs};
 
 #[derive(Deserialize)]
 struct ProfileDeserialized {
-    profile: ProfileTable,
+    #[serde(rename = "profile")]
+    profile_table: ProfileTable,
 }
 
 #[derive(Deserialize)]
@@ -141,7 +142,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
     let mut hooks = Vec::new();
 
     // parse all of the settings and add them to the vector
-    if let Some(profile_settings) = profile.profile.settings {
+    if let Some(profile_settings) = profile.profile_table.settings {
         for setting in profile_settings {
             let path = PathBuf::from(setting);
 
@@ -158,7 +159,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
     // TODO: pase all of the hooks and add them to the vector
 
     Profile {
-        name: profile.profile.name.unwrap_or(
+        name: profile.profile_table.name.unwrap_or(
             path.as_ref()
                 .file_name()
                 .unwrap()
