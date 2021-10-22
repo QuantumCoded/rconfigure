@@ -1,4 +1,4 @@
-use crate::hook::Hook;
+use crate::{script, hook::Hook};
 use crate::setting::{self, Setting};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
@@ -62,7 +62,7 @@ impl Profile {
         None
     }
 
-    pub fn apply(&self) {
+    pub fn apply(&self, engine: &mut rhai::Engine) {
         // check for setting conflicts
         if let Some((setting1, setting2, target)) = self.setting_conflict(None) {
             println!("failed to apply profile, found setting conflict!");
@@ -102,8 +102,21 @@ impl Profile {
                             map.insert(k, s);
                         }
 
-                        Script { .. } => {
-                            // TODO: run the rhai script to generate values and append them
+                        Script { script, value } => {
+                            // FIXME: use dirs crate
+                            let path = PathBuf::from(script);
+                            let path = if path.is_absolute() {
+                                path
+                            } else {
+                                // FIXME: use dirs crate
+                                PathBuf::from("/home/jeff/.config/rconfigure/scripts").join(path)
+                            };
+
+                            let values = script::eval_rhai(path, value, setting, engine);
+
+                            for (k, v) in values {
+                                
+                            }
                         }
                     }
                 }
@@ -116,7 +129,11 @@ impl Profile {
                     }
 
                     Err(e) => {
-                        println!("failed to template target {:?} with setting {:?}", target, setting.name());
+                        println!(
+                            "failed to template target {:?} with setting {:?}",
+                            target,
+                            setting.name()
+                        );
                         println!("{}", e);
                         std::process::exit(1);
                     }

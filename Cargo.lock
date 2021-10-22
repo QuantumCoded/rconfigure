@@ -201,6 +201,7 @@ dependencies = [
  "instant",
  "num-traits",
  "rhai_codegen",
+ "serde",
  "smallvec",
  "smartstring",
 ]

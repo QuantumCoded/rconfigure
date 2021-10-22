@@ -1,8 +1,7 @@
-use crate::hook::Hook;
+use crate::{hook::Hook, script::ScriptValue};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
-use toml::Value;
 
 #[derive(Deserialize, Clone)]
 #[serde(untagged)]
@@ -11,7 +10,7 @@ pub enum TargetValue {
     Integer(i64),
     Float(f64),
     String(String),
-    Script { script: String, value: Value },
+    Script { script: String, value: ScriptValue },
 }
 
 #[derive(Deserialize)]
@@ -37,6 +36,7 @@ pub struct Setting {
     path: PathBuf,
     global_target: Option<HashMap<String, TargetValue>>,
     targets: Vec<(PathBuf, HashMap<String, TargetValue>)>,
+    //targets: HashMap<PathBuf, HashMap<String, TargetValue>>,
 }
 
 impl Setting {
@@ -117,6 +117,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
 
     let mut hooks: Vec<Hook> = Vec::new();
     let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
+    //let mut targets: HashMap<PathBuf, HashMap<String, TargetValue>> = HashMap::new();
 
     // TODO: convert all setting hooks into struct form
 
@@ -126,10 +127,12 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
 
         if path.is_absolute() {
             targets.push((path.to_owned(), table));
+            //targets.insert(path.to_owned(), table);
         } else {
             // FIXME: use dirs crate
             let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
-            targets.push((path, table));
+            targets.push((path.to_owned(), table));
+            //targets.insert(path, table);
         }
     }
 
