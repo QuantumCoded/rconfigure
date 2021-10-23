@@ -30,7 +30,9 @@ impl Hook {
     pub fn run(&self) -> Option<Output> {
         let mut cmd = Command::new(&self.cmd);
 
-        cmd.args(&self.args).stdin(std::process::Stdio::null());
+        cmd.args(&self.args)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::inherit());
 
         if let Some(dir) = &self.cwd {
             cmd.current_dir(dir);
