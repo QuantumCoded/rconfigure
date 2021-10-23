@@ -1,5 +1,5 @@
 use crate::hook::Hook;
-use crate::script::{self, ScriptValue};
+use crate::script::{self, ScriptValue, Flatten};
 use crate::setting::{self, Setting, TargetValue};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
@@ -62,7 +62,7 @@ impl Profile {
         None
     }
 
-    pub fn apply(&self, engine: &mut rhai::Engine) {
+    pub fn apply(&self, engine: &rhai::Engine) {
         // check for setting conflicts
         if let Some((setting1, setting2, target)) = self.setting_conflict(None) {
             println!("failed to apply profile, found setting conflict!");
@@ -130,8 +130,12 @@ impl Profile {
                                         map.insert(k, s);
                                     }
 
-                                    ScriptValue::Map(_) => {
-                                        // TODO: flatten recursive script values into dot notation
+                                    ScriptValue::Array(a) => {
+                                        map.extend(a.flatten(k).into_iter())
+                                    }
+
+                                    ScriptValue::Map(m) => {
+                                        map.extend(m.flatten(k).into_iter())
                                     }
                                 }
                             }
@@ -139,6 +143,7 @@ impl Profile {
                     }
                 }
 
+                // FIXME: make a backup of all config files when applying
                 // FIXME: cache and make sure all config files get generated successfully before applying any
                 match crate::template::generate_config(&target, map) {
                     Ok((path, contents)) => {
