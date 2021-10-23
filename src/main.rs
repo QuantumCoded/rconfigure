@@ -1,9 +1,10 @@
 #[macro_use]
 extern crate clap;
-use rhai::Engine;
 
+use rhai::Engine;
 use clap::Arg;
 
+mod bool_false_as_none;
 mod hook;
 mod profile;
 mod script;

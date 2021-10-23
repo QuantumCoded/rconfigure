@@ -1,4 +1,3 @@
-use crate::setting::Setting;
 use rhai::{serde::from_dynamic, Dynamic, Engine, Scope};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, iter::FromIterator, path::PathBuf, str::FromStr};
@@ -95,7 +94,6 @@ impl Flatten for HashMap<String, ScriptValue> {
 pub fn eval_rhai(
     path: PathBuf,
     value: ScriptValue,
-    setting: &Setting,
     engine: &Engine,
 ) -> HashMap<String, ScriptValue> {
     let mut scope = Scope::new();

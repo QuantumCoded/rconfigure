@@ -3,6 +3,8 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
+// TODO: use a trait to add apply method
+
 #[derive(Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TargetValue {
@@ -26,7 +28,8 @@ struct SettingDeserialized {
 #[derive(Deserialize)]
 struct SettingTable {
     name: Option<String>,
-    hooks: Option<Vec<String>>,
+    #[serde(default)]
+    hooks: Vec<Hook>,
 }
 
 #[derive(Clone)]
@@ -90,9 +93,9 @@ impl Setting {
             .collect()
     }
 
-    /// Get the path of the setting file
-    pub fn path(&self) -> PathBuf {
-        self.path.to_owned()
+    /// Get the hooks
+    pub fn hooks(&self) -> &Vec<Hook> {
+        &self.hooks
     }
 
     /// Get the name of the setting
@@ -114,10 +117,14 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         }
     };
 
-    let mut hooks: Vec<Hook> = Vec::new();
-    let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
+/*     let hooks = if let Some(SettingTable { hooks, .. }) = setting.setting_table {
+        hooks
+    } else {
+        Vec::new()
+    }; */
 
-    // TODO: convert all setting hooks into struct form
+    // FIXME: switch to deserializing to pathbufs instead of strings everywhere for settings
+    let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
 
     // expand paths for all targets
     for (target, table) in setting.targets {
@@ -135,8 +142,8 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
     Setting {
         name: match setting.setting_table {
             Some(SettingTable {
-                name: Some(name), ..
-            }) => name,
+                name: Some(ref name), ..
+            }) => name.clone(),
             _ => path
                 .as_ref()
                 .file_name()
@@ -145,7 +152,10 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
                 .unwrap()
                 .to_string(),
         },
-        hooks,
+        hooks: match setting.setting_table {
+            Some(SettingTable { hooks, .. }) => hooks,
+            _ => Vec::new(),
+        },
         path: path.as_ref().to_owned(),
         global_target: setting.global_target,
         targets,

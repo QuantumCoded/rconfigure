@@ -15,7 +15,8 @@ struct ProfileDeserialized {
 struct ProfileTable {
     name: Option<String>,
     settings: Option<Vec<String>>,
-    hooks: Option<Vec<String>>,
+    #[serde(default)]
+    hooks: Vec<Hook>,
 }
 
 pub struct Profile {
@@ -62,6 +63,7 @@ impl Profile {
         None
     }
 
+    // FIXME: make an apply method for setting and separate this code
     pub fn apply(&self, engine: &rhai::Engine) {
         // check for setting conflicts
         if let Some((setting1, setting2, target)) = self.setting_conflict(None) {
@@ -76,7 +78,7 @@ impl Profile {
         }
 
         // go through each setting and apply it
-        for setting in self.settings.iter() {
+        for setting in &self.settings {
             // go through each target for the current setting
             for target in setting.targets() {
                 let mut map = HashMap::new();
@@ -110,7 +112,7 @@ impl Profile {
                                 PathBuf::from("/home/jeff/.config/rconfigure/scripts").join(path)
                             };
 
-                            let returned_values = script::eval_rhai(path, value, setting, engine);
+                            let returned_values = script::eval_rhai(path, value, engine);
 
                             for (k, v) in returned_values {
                                 match v {
@@ -163,6 +165,16 @@ impl Profile {
                 }
             }
         }
+
+        for setting in &self.settings {
+            for hook in setting.hooks() {
+                hook.run();
+            }
+        }
+
+        for hook in &self.hooks {
+            hook.run();
+        }
     }
 }
 
@@ -179,7 +191,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
     };
 
     let mut settings = Vec::new();
-    let mut hooks = Vec::new();
 
     // parse all of the settings and add them to the vector
     if let Some(profile_settings) = profile.profile_table.settings {
@@ -196,8 +207,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
         }
     }
 
-    // TODO: pase all of the hooks and add them to the vector
-
     Profile {
         name: profile.profile_table.name.unwrap_or(
             path.as_ref()
@@ -208,6 +217,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
                 .to_string(),
         ),
         settings,
-        hooks,
+        hooks: profile.profile_table.hooks,
     }
 }
