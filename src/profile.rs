@@ -1,5 +1,5 @@
 use crate::hook::Hook;
-use crate::script::{self, ScriptValue, Flatten};
+use crate::script::{self, Flatten, ScriptValue};
 use crate::setting::{self, Setting, TargetValue};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
@@ -119,26 +119,22 @@ impl Profile {
                                     ScriptValue::Boolean(b) => {
                                         map.insert(k, b.to_string());
                                     }
-            
+
                                     ScriptValue::Integer(i) => {
                                         map.insert(k, i.to_string());
                                     }
-            
+
                                     ScriptValue::Float(f) => {
                                         map.insert(k, f.to_string());
                                     }
-            
+
                                     ScriptValue::String(s) => {
                                         map.insert(k, s);
                                     }
 
-                                    ScriptValue::Array(a) => {
-                                        map.extend(a.flatten(k).into_iter())
-                                    }
+                                    ScriptValue::Array(a) => map.extend(a.flatten(k).into_iter()),
 
-                                    ScriptValue::Map(m) => {
-                                        map.extend(m.flatten(k).into_iter())
-                                    }
+                                    ScriptValue::Map(m) => map.extend(m.flatten(k).into_iter()),
                                 }
                             }
                         }

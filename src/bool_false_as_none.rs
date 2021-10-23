@@ -1,9 +1,9 @@
 // Yoinked from serde and modified: https://github.com/serde-rs/serde
 
 use core::fmt;
-use std::{fmt::Display, marker::PhantomData, str::FromStr};
+use serde::de::{Error, Unexpected, Visitor};
 use serde::Deserializer;
-use serde::de::{Visitor, Error, Unexpected};
+use std::{fmt::Display, marker::PhantomData, str::FromStr};
 
 /// Deserialize an `Option<T>` from a string or bool using `FromStr`
 pub fn deserialize<'de, D, S>(deserializer: D) -> Result<Option<S>, D::Error>
@@ -48,7 +48,10 @@ where
         {
             match value {
                 false => Ok(None),
-                true => Err(Error::invalid_value(Unexpected::Bool(true), &"string or false"))
+                true => Err(Error::invalid_value(
+                    Unexpected::Bool(true),
+                    &"string or false",
+                )),
             }
         }
 

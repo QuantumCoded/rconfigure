@@ -3,8 +3,6 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
-// TODO: use a trait to add apply method
-
 #[derive(Deserialize, Clone)]
 #[serde(untagged)]
 pub enum TargetValue {
@@ -117,12 +115,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         }
     };
 
-/*     let hooks = if let Some(SettingTable { hooks, .. }) = setting.setting_table {
-        hooks
-    } else {
-        Vec::new()
-    }; */
-
     // FIXME: switch to deserializing to pathbufs instead of strings everywhere for settings
     let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
 
@@ -142,7 +134,8 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
     Setting {
         name: match setting.setting_table {
             Some(SettingTable {
-                name: Some(ref name), ..
+                name: Some(ref name),
+                ..
             }) => name.clone(),
             _ => path
                 .as_ref()
