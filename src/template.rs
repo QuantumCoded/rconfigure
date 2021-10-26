@@ -39,7 +39,7 @@ pub fn generate_config<P: AsRef<Path>>(
         template.push_str(first_line);
 
         for line in lines {
-            let mut line =  String::from(line);
+            let mut line = String::from(line);
             line.push_str("\n");
 
             template.push_str(line.as_str());

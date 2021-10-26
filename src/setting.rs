@@ -1,4 +1,5 @@
 use crate::{hook::Hook, script::ScriptValue};
+use dirs::config_dir;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -45,8 +46,11 @@ impl Setting {
         let mut path = if path.as_ref().is_absolute() {
             path.as_ref().to_owned()
         } else {
-            // FIXME: use dirs crate
-            Path::new("/home/jeff/.config/rconfigure/templates").join(path)
+            // FIXME: better error handling
+            config_dir()
+                .expect("config dir borked")
+                .join("rconfigure/templates")
+                .join(path)
         };
 
         let mut map: HashMap<String, TargetValue> = HashMap::new();
@@ -125,8 +129,11 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         if path.is_absolute() {
             targets.push((path.to_owned(), table));
         } else {
-            // FIXME: use dirs crate
-            let path = PathBuf::from("/home/jeff/.config/rconfigure/templates").join(path);
+            // FIXME: better error handling
+            let path = config_dir()
+                .expect("config dir borked")
+                .join("rconfigure/templates")
+                .join(path);
             targets.push((path.to_owned(), table));
         }
     }

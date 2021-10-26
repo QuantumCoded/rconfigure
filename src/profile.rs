@@ -1,6 +1,7 @@
 use crate::hook::Hook;
 use crate::script::{self, Flatten, ScriptValue};
 use crate::setting::{self, Setting, TargetValue};
+use dirs::config_dir;
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
@@ -103,13 +104,15 @@ impl Profile {
                         }
 
                         TargetValue::Script { script, value } => {
-                            // FIXME: use dirs crate
                             let path = PathBuf::from(script);
                             let path = if path.is_absolute() {
                                 path
                             } else {
-                                // FIXME: use dirs crate
-                                PathBuf::from("/home/jeff/.config/rconfigure/scripts").join(path)
+                                // FIXME: better error handling
+                                config_dir()
+                                    .expect("config dir borked")
+                                    .join("rconfigure/script")
+                                    .join(path)
                             };
 
                             let returned_values = script::eval_rhai(path, value, engine);
@@ -196,8 +199,11 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
             if path.is_absolute() {
                 settings.push(setting::parse(path));
             } else {
-                // FIXME: use dirs crate
-                let path = PathBuf::from("/home/jeff/.config/rconfigure/settings").join(path);
+                // FIXME: better error handling
+                let path = config_dir()
+                    .expect("config dir borked")
+                    .join("rconfigure/settings")
+                    .join(path);
                 settings.push(setting::parse(path));
             }
         }
