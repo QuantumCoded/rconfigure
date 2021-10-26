@@ -9,7 +9,7 @@ use std::{collections::HashMap, fs};
 #[derive(Deserialize)]
 struct ProfileDeserialized {
     #[serde(rename = "profile")]
-    profile_table: ProfileTable,
+    profile_table: Option<ProfileTable>,
 }
 
 #[derive(Deserialize)]
@@ -106,36 +106,47 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
         }
     };
 
-    let mut settings = Vec::new();
+    let mut settings_buf = Vec::new();
 
     // parse all of the settings and add them to the vector
-    if let Some(profile_settings) = profile.profile_table.settings {
-        for setting in profile_settings {
+    if let Some(ProfileTable {
+        settings: Some(settings),
+        ..
+    }) = &profile.profile_table
+    {
+        for setting in settings {
             let path = PathBuf::from(setting);
 
             if path.is_absolute() {
-                settings.push(setting::parse(path));
+                settings_buf.push(setting::parse(path));
             } else {
                 // FIXME: better error handling
                 let path = config_dir()
                     .expect("config dir borked")
                     .join("rconfigure/settings")
                     .join(path);
-                settings.push(setting::parse(path));
+                settings_buf.push(setting::parse(path));
             }
         }
     }
 
     Profile {
-        name: profile.profile_table.name.unwrap_or(
-            path.as_ref()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string(),
-        ),
-        settings,
-        hooks: profile.profile_table.hooks,
+        name: profile
+            .profile_table
+            .as_ref()
+            .and_then(|t| t.name.clone())
+            .unwrap_or_else(|| {
+                path.as_ref()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string()
+            }),
+        settings: settings_buf,
+        hooks: profile
+            .profile_table
+            .and_then(|t| Some(t.hooks))
+            .unwrap_or_default(),
     }
 }
