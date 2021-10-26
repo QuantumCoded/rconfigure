@@ -23,7 +23,7 @@ struct SettingDeserialized {
     #[serde(rename = "global")]
     global_target: Option<HashMap<String, TargetValue>>,
     #[serde(flatten)]
-    targets: HashMap<String, HashMap<String, TargetValue>>,
+    targets: HashMap<PathBuf, HashMap<String, TargetValue>>,
 }
 
 #[derive(Deserialize)]
@@ -206,25 +206,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         }
     };
 
-    // FIXME: switch to deserializing to pathbufs instead of strings everywhere for settings
-    let mut targets: Vec<(PathBuf, HashMap<String, TargetValue>)> = Vec::new();
-
-    // expand paths for all targets
-    for (target, table) in setting.targets {
-        let path = PathBuf::from(target);
-
-        if path.is_absolute() {
-            targets.push((path.to_owned(), table));
-        } else {
-            // FIXME: better error handling
-            let path = config_dir()
-                .expect("config dir borked")
-                .join("rconfigure/templates")
-                .join(path);
-            targets.push((path.to_owned(), table));
-        }
-    }
-
     Setting {
         name: match setting.setting_table {
             Some(SettingTable {
@@ -245,6 +226,18 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         },
         path: path.as_ref().to_owned(),
         global_target: setting.global_target,
-        targets,
+        targets: setting.targets.into_iter().map(|(path, table)| {
+            if path.is_absolute() {
+                (path, table)
+            } else {
+                // FIXME: better error handling
+                let path = config_dir()
+                    .expect("config dir borked")
+                    .join("rconfigure/templates")
+                    .join(path);
+                
+                (path, table)
+            }
+        }).collect::<Vec<_>>(),
     }
 }
