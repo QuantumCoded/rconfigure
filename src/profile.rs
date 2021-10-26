@@ -64,7 +64,6 @@ impl Profile {
         None
     }
 
-    // FIXME: make an apply method for setting and separate this code
     pub fn apply(&self, engine: &Engine) {
         // check for setting conflicts
         if let Some((setting1, setting2, target)) = self.setting_conflict(None) {
