@@ -33,6 +33,7 @@ struct SettingTable {
     hooks: Vec<Hook>,
 }
 
+// FIXME: Setting can derive `Deserialize`, can we refactor SettingDeserialized out?
 #[derive(Clone)]
 pub struct Setting {
     name: String,
