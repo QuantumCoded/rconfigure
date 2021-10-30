@@ -1,11 +1,11 @@
 use crate::bool_false_as_none;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Serialize, Clone)]
 struct StringOrFalseAsNone(#[serde(with = "bool_false_as_none")] Option<String>);
 
 impl Deref for StringOrFalseAsNone {
@@ -16,7 +16,8 @@ impl Deref for StringOrFalseAsNone {
     }
 }
 
-#[derive(Deserialize, Clone)]
+// TODO: make hooks that run on unset
+#[derive(Deserialize, Serialize, Clone)]
 pub struct Hook {
     cmd: String,
     cwd: Option<PathBuf>,

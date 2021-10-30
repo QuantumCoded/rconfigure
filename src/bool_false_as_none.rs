@@ -1,8 +1,8 @@
-// Yoinked from serde and modified: https://github.com/serde-rs/serde
+// Yoinked from serde and modified: https://docs.rs/serde_with/1.11.0/src/serde_with/rust.rs.html#1017-1083
 
 use core::fmt;
 use serde::de::{Error, Unexpected, Visitor};
-use serde::Deserializer;
+use serde::{Deserializer, Serialize, Serializer};
 use std::{fmt::Display, marker::PhantomData, str::FromStr};
 
 /// Deserialize an `Option<T>` from a string or bool using `FromStr`
@@ -28,18 +28,14 @@ where
         where
             E: Error,
         {
-            match value {
-                v => S::from_str(v).map(Some).map_err(Error::custom),
-            }
+            S::from_str(value).map(Some).map_err(Error::custom)
         }
 
         fn visit_string<E>(self, value: String) -> Result<Self::Value, E>
         where
             E: Error,
         {
-            match &*value {
-                v => S::from_str(v).map(Some).map_err(Error::custom),
-            }
+            S::from_str(&*value).map(Some).map_err(Error::custom)
         }
 
         fn visit_bool<E>(self, value: bool) -> Result<Self::Value, E>
@@ -65,4 +61,17 @@ where
     }
 
     deserializer.deserialize_any(OptionStringFalseNone(PhantomData))
+}
+
+/// Serialize a string from `Option<T>` using `AsRef<str>` or using the empty string if `None`.
+pub fn serialize<T, S>(option: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    T: AsRef<str>,
+    S: Serializer,
+{
+    if let Some(value) = option {
+        value.as_ref().serialize(serializer)
+    } else {
+        false.serialize(serializer)
+    }
 }

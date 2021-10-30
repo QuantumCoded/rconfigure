@@ -183,6 +183,11 @@ impl Setting {
             .collect()
     }
 
+    /// Get the path of the setting file
+    pub fn path(&self) -> PathBuf {
+        self.path.to_owned()
+    }
+
     /// Get the hooks
     pub fn hooks(&self) -> &Vec<Hook> {
         &self.hooks
@@ -196,12 +201,25 @@ impl Setting {
 
 /// Parses a setting into its struct representation
 pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
+    
+    let path = if path.as_ref().is_absolute() {
+        path.as_ref().to_owned()
+    } else {
+        // FIXME: better error handling
+        config_dir()
+        .expect("config dir borked")
+        .join("rconfigure/settings")
+        .join(path)
+    };
+    
+    println!("{:?}", path);
+
     // FIXME: handle errors for file not found
-    let s = fs::read_to_string(path.as_ref()).unwrap();
+    let s = fs::read_to_string(&path).unwrap();
     let setting: SettingDeserialized = match toml::from_str(s.as_str()) {
         Ok(value) => value,
         Err(e) => {
-            println!("error when parsing setting {:?}", path.as_ref());
+            println!("error when parsing setting {:?}", path);
             println!("{}", e);
             std::process::exit(1);
         }
@@ -214,7 +232,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
                 ..
             }) => name.clone(),
             _ => path
-                .as_ref()
                 .file_name()
                 .unwrap()
                 .to_str()
@@ -225,20 +242,24 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
             Some(SettingTable { hooks, .. }) => hooks,
             _ => Vec::new(),
         },
-        path: path.as_ref().to_owned(),
+        path,
         global_target: setting.global_target,
-        targets: setting.targets.into_iter().map(|(path, table)| {
-            if path.is_absolute() {
-                (path, table)
-            } else {
-                // FIXME: better error handling
-                let path = config_dir()
-                    .expect("config dir borked")
-                    .join("rconfigure/templates")
-                    .join(path);
-                
-                (path, table)
-            }
-        }).collect::<Vec<_>>(),
+        targets: setting
+            .targets
+            .into_iter()
+            .map(|(path, table)| {
+                if path.is_absolute() {
+                    (path, table)
+                } else {
+                    // FIXME: better error handling
+                    let path = config_dir()
+                        .expect("config dir borked")
+                        .join("rconfigure/templates")
+                        .join(path);
+
+                    (path, table)
+                }
+            })
+            .collect::<Vec<_>>(),
     }
 }

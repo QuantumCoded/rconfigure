@@ -1,18 +1,19 @@
 use crate::hook::Hook;
 use crate::setting::{self, Setting};
 use dirs::config_dir;
+use quiz::confirm;
 use rhai::Engine;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct ProfileDeserialized {
     #[serde(rename = "profile")]
     profile_table: Option<ProfileTable>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 struct ProfileTable {
     name: Option<String>,
     settings: Option<Vec<String>>,
@@ -20,7 +21,10 @@ struct ProfileTable {
     hooks: Vec<Hook>,
 }
 
+// this is bad
+#[derive(Clone)]
 pub struct Profile {
+    path: PathBuf,
     name: String,
     settings: Vec<Setting>,
     hooks: Vec<Hook>,
@@ -29,10 +33,10 @@ pub struct Profile {
 impl Profile {
     /// Checks for settings with conflicting targets and returns a tuple of the two conflicting
     /// setting files and their conflicting target
-    fn setting_conflict(
-        &self,
-        new_setting: Option<Setting>,
-    ) -> Option<(Setting, Setting, PathBuf)> {
+    fn setting_conflict<'a>(
+        &'a self,
+        new_setting: Option<&'a Setting>,
+    ) -> Option<(Setting, &'a Setting, PathBuf)> {
         let mut targets = HashMap::new();
 
         // check for conflicts in profile settings
@@ -41,11 +45,7 @@ impl Profile {
                 if !targets.contains_key(&target) {
                     targets.insert(target, setting);
                 } else {
-                    return Some((
-                        (*targets.get(&target).unwrap()).to_owned(),
-                        setting.to_owned(),
-                        target,
-                    ));
+                    return Some(((*targets.get(&target).unwrap()).to_owned(), setting, target));
                 }
             }
         }
@@ -56,6 +56,7 @@ impl Profile {
                 if !targets.contains_key(&target) {
                     targets.insert(target, &setting);
                 } else {
+                    // existing setting, enabled setting, conflicting target
                     return Some(((*targets.get(&target).unwrap()).to_owned(), setting, target));
                 }
             }
@@ -92,15 +93,158 @@ impl Profile {
             hook.run();
         }
     }
+
+    // FIXME: get rid of this
+    fn enable_setting_helper<P: AsRef<Path>>(&mut self, path: P, noconfirm: bool) {
+        let setting = setting::parse(&path);
+
+        // FIXME: do NOT use clone here please ;-;
+        if let Some((setting1, setting2, target)) = self.clone().setting_conflict(Some(&setting)) {
+            if noconfirm {
+                self.settings.retain(|s| s.path() != setting.path());
+                // self.settings.push(setting);
+
+                // FIXME: don't parse setting recursively :)
+                self.enable_setting_helper(path, noconfirm);
+            } else {
+                println!("failed to apply profile, found setting conflict!");
+
+                let prompt = format!(
+                    "settings {0:?} and {1:?} both set values for target {2:?}, replace setting {0:?} with {1:?}?",
+                    setting1.name(),
+                    setting2.name(),
+                    target
+                );
+
+                if confirm(&prompt) {
+                    self.settings.retain(|s| s.path() != setting2.path());
+                    // self.settings.push(setting);
+
+                    // FIXME: don't parse setting recursively :)
+                    self.enable_setting_helper(path, noconfirm);
+                } else {
+                    std::process::exit(0);
+                }
+            }
+        } else {
+            self.settings.push(setting);
+        }
+    }
+
+    pub fn enable_setting<P: AsRef<Path>>(&mut self, path: P, noconfirm: bool) {
+        let setting = setting::parse(&path);
+
+        self.enable_setting_helper(&path, noconfirm);
+        self.settings.push(setting.clone());
+
+        let path = if path.as_ref().is_absolute() {
+            path.as_ref().to_owned()
+        } else {
+            // FIXME: better error handling
+            config_dir()
+                .expect("config dir borked")
+                .join("rconfigure/profiles")
+                .join(path)
+        };
+
+        // FIXME: handle errors for file not found
+        println!("{:?}", path);
+        let s = fs::read_to_string(&self.path).unwrap();
+        let mut profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
+            Ok(value) => value,
+            Err(e) => {
+                println!("error when parsing setting {:?}", path);
+                println!("{}", e);
+                std::process::exit(1);
+            }
+        };
+
+        if let Some(ProfileTable {
+            settings: Some(ref mut settings),
+            ..
+        }) = profile.profile_table
+        {
+            let s = setting.path();
+            let s = s.to_str();
+            settings.push(s.unwrap().to_string());
+        }
+
+        fs::write(
+            &self.path,
+            toml::to_string(&profile).expect("failed to serialize profile"),
+        )
+        .unwrap();
+    }
+
+    pub fn disable_setting<P: AsRef<Path>>(&mut self, path: P) {
+        let setting = setting::parse(&path);
+        self.settings.retain(|s| s.path() != setting.path());
+
+        let path = if path.as_ref().is_absolute() {
+            path.as_ref().to_owned()
+        } else {
+            // FIXME: better error handling
+            config_dir()
+                .expect("config dir borked")
+                .join("rconfigure/profiles")
+                .join(path)
+        };
+
+        // FIXME: handle errors for file not found
+        let s = fs::read_to_string(&self.path).unwrap();
+        let mut profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
+            Ok(value) => value,
+            Err(e) => {
+                println!("error when parsing setting {:?}", path);
+                println!("{}", e);
+                std::process::exit(1);
+            }
+        };
+
+        if let Some(ProfileTable {
+            settings: Some(ref mut settings),
+            ..
+        }) = profile.profile_table
+        {
+            let mut settings_buf = vec![];
+
+            for (string, contained_setting) in settings
+                .iter()
+                .map(|string| (string, setting::parse(string)))
+            {
+                if setting.path() != contained_setting.path() {
+                    settings_buf.push(string.to_owned())
+                }
+            }
+
+            *settings = settings_buf;
+        }
+
+        fs::write(
+            &self.path,
+            toml::to_string(&profile).expect("failed to serialize profile"),
+        )
+        .unwrap();
+    }
 }
 
 pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
+    let path = if path.as_ref().is_absolute() {
+        path.as_ref().to_owned()
+    } else {
+        // FIXME: better error handling
+        config_dir()
+            .expect("config dir borked")
+            .join("rconfigure/profiles")
+            .join(path)
+    };
+
     // FIXME: handle errors for file not found
-    let s = fs::read_to_string(path.as_ref()).unwrap();
+    let s = fs::read_to_string(&path).unwrap();
     let profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
         Ok(value) => value,
         Err(e) => {
-            println!("error when parsing setting {:?}", path.as_ref());
+            println!("error when parsing setting {:?}", path);
             println!("{}", e);
             std::process::exit(1);
         }
@@ -117,16 +261,7 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
         for setting in settings {
             let path = PathBuf::from(setting);
 
-            if path.is_absolute() {
-                settings_buf.push(setting::parse(path));
-            } else {
-                // FIXME: better error handling
-                let path = config_dir()
-                    .expect("config dir borked")
-                    .join("rconfigure/settings")
-                    .join(path);
-                settings_buf.push(setting::parse(path));
-            }
+            settings_buf.push(setting::parse(path));
         }
     }
 
@@ -135,18 +270,12 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Profile {
             .profile_table
             .as_ref()
             .and_then(|t| t.name.clone())
-            .unwrap_or_else(|| {
-                path.as_ref()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-            }),
+            .unwrap_or_else(|| path.file_name().unwrap().to_str().unwrap().to_string()),
         settings: settings_buf,
         hooks: profile
             .profile_table
             .and_then(|t| Some(t.hooks))
             .unwrap_or_default(),
+        path,
     }
 }
