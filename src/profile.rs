@@ -155,27 +155,6 @@ impl Profile {
                 .iter()
                 .map(|s| s.path().to_str().unwrap().to_string())
                 .collect();
-/* 
-            let mut settings_buf = vec![];
-            let mut paths_buf = std::collections::HashSet::new();
-
-            // buffer all settings that are contained in the profile after removing conflicting settings
-            for (string, contained_setting) in settings
-                .iter()
-                .map(|string| (string, setting::parse(string)))
-            {
-                for valid_setting in &self.settings {
-                    if valid_setting.path() == contained_setting.path() {
-                        if !paths_buf.contains(&contained_setting.path()) {
-                            settings_buf.push(string.to_owned());
-                            paths_buf.insert(contained_setting.path());
-                        }
-                    }
-                }
-            }
-
-            // overwrite the deserialized settings with the buffered settings */
-
         }
 
         // serialize and write to file
