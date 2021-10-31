@@ -63,7 +63,7 @@ where
     deserializer.deserialize_any(OptionStringFalseNone(PhantomData))
 }
 
-/// Serialize a string from `Option<T>` using `AsRef<str>` or using the empty string if `None`.
+/// Serialize a string from `Option<T>` using `AsRef<str>` or using false if `None`.
 pub fn serialize<T, S>(option: &Option<T>, serializer: S) -> Result<S::Ok, S::Error>
 where
     T: AsRef<str>,
