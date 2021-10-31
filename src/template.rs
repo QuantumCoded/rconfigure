@@ -37,12 +37,13 @@ pub fn generate_config<P: AsRef<Path>>(
     // collect all of the actual template data
     if let Some(first_line) = first_line {
         template.push_str(first_line);
+        template.push_str("\n");
 
         for line in lines {
-            let mut line = String::from(line);
-            line.push_str("\n");
+            let line = String::from(line);
 
             template.push_str(line.as_str());
+            template.push_str("\n");
         }
     }
 
