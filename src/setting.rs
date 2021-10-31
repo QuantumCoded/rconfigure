@@ -6,7 +6,7 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::{collections::HashMap, fs};
 
-#[derive(Deserialize, Clone)]
+#[derive(Deserialize, Clone, Debug)]
 #[serde(untagged)]
 pub enum TargetValue {
     Boolean(bool),
@@ -34,7 +34,7 @@ struct SettingTable {
 }
 
 // FIXME: Setting can derive `Deserialize`, can we refactor SettingDeserialized out?
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Setting {
     name: String,
     hooks: Vec<Hook>,
@@ -211,8 +211,6 @@ pub fn parse<P: AsRef<Path>>(path: P) -> Setting {
         .join("rconfigure/settings")
         .join(path)
     };
-    
-    println!("{:?}", path);
 
     // FIXME: handle errors for file not found
     let s = fs::read_to_string(&path).unwrap();

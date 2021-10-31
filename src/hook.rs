@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::path::PathBuf;
 use std::process::{Command, Output};
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 struct StringOrFalseAsNone(#[serde(with = "bool_false_as_none")] Option<String>);
 
 impl Deref for StringOrFalseAsNone {
@@ -17,7 +17,7 @@ impl Deref for StringOrFalseAsNone {
 }
 
 // TODO: make hooks that run on unset
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct Hook {
     cmd: String,
     cwd: Option<PathBuf>,

@@ -94,18 +94,14 @@ impl Profile {
         }
     }
 
-    // FIXME: get rid of this
-    fn enable_setting_helper<P: AsRef<Path>>(&mut self, path: P, noconfirm: bool) {
+    pub fn enable_setting<P: AsRef<Path>>(&mut self, path: P, noconfirm: bool) {
         let setting = setting::parse(&path);
 
-        // FIXME: do NOT use clone here please ;-;
-        if let Some((setting1, setting2, target)) = self.clone().setting_conflict(Some(&setting)) {
+        // resolve all setting conflicts
+        while let Some((setting1, setting2, target)) = self.setting_conflict(Some(&setting)) {
             if noconfirm {
-                self.settings.retain(|s| s.path() != setting.path());
-                // self.settings.push(setting);
-
-                // FIXME: don't parse setting recursively :)
-                self.enable_setting_helper(path, noconfirm);
+                // retain everything that is NOT setting1
+                self.settings.retain(|s| s.path() != setting1.path());
             } else {
                 println!("failed to apply profile, found setting conflict!");
 
@@ -117,24 +113,15 @@ impl Profile {
                 );
 
                 if confirm(&prompt) {
-                    self.settings.retain(|s| s.path() != setting2.path());
-                    // self.settings.push(setting);
-
-                    // FIXME: don't parse setting recursively :)
-                    self.enable_setting_helper(path, noconfirm);
+                    // retain everything that is NOT setting1
+                    self.settings.retain(|s| s.path() != setting1.path());
                 } else {
                     std::process::exit(0);
                 }
             }
-        } else {
-            self.settings.push(setting);
         }
-    }
 
-    pub fn enable_setting<P: AsRef<Path>>(&mut self, path: P, noconfirm: bool) {
-        let setting = setting::parse(&path);
-
-        self.enable_setting_helper(&path, noconfirm);
+        // after resolving setting conflicts push the setting to be added
         self.settings.push(setting.clone());
 
         let path = if path.as_ref().is_absolute() {
@@ -148,7 +135,6 @@ impl Profile {
         };
 
         // FIXME: handle errors for file not found
-        println!("{:?}", path);
         let s = fs::read_to_string(&self.path).unwrap();
         let mut profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
             Ok(value) => value,
@@ -164,11 +150,35 @@ impl Profile {
             ..
         }) = profile.profile_table
         {
-            let s = setting.path();
-            let s = s.to_str();
-            settings.push(s.unwrap().to_string());
+            *settings = self
+                .settings
+                .iter()
+                .map(|s| s.path().to_str().unwrap().to_string())
+                .collect();
+/* 
+            let mut settings_buf = vec![];
+            let mut paths_buf = std::collections::HashSet::new();
+
+            // buffer all settings that are contained in the profile after removing conflicting settings
+            for (string, contained_setting) in settings
+                .iter()
+                .map(|string| (string, setting::parse(string)))
+            {
+                for valid_setting in &self.settings {
+                    if valid_setting.path() == contained_setting.path() {
+                        if !paths_buf.contains(&contained_setting.path()) {
+                            settings_buf.push(string.to_owned());
+                            paths_buf.insert(contained_setting.path());
+                        }
+                    }
+                }
+            }
+
+            // overwrite the deserialized settings with the buffered settings */
+
         }
 
+        // serialize and write to file
         fs::write(
             &self.path,
             toml::to_string(&profile).expect("failed to serialize profile"),
