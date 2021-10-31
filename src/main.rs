@@ -64,7 +64,7 @@ fn main() {
                         ),
                 ),
         )
-        .subcommand(SubCommand::with_name("reload"))
+        .subcommand(SubCommand::with_name("reload").about("Reloads the active profile"))
         .get_matches();
 
     match matches.subcommand() {
