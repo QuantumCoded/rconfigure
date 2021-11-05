@@ -21,8 +21,6 @@ struct ProfileTable {
     hooks: Vec<Hook>,
 }
 
-// this is bad
-#[derive(Clone)]
 pub struct Profile {
     path: PathBuf,
     name: String,
@@ -153,6 +151,7 @@ impl Profile {
             *settings = self
                 .settings
                 .iter()
+                // FIXME: check if the path is relative to the settings directory and use short names if possible
                 .map(|s| s.path().to_str().unwrap().to_string())
                 .collect();
         }
