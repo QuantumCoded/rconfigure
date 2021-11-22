@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 impl Profile {
-    /// Checks for settings with conflicting targets and returns a tuple of the two conflicting
+    /// Checks for settings with conflicting targets and returns a tuple of the first two conflicting
     /// setting files and their conflicting target
     pub fn setting_conflict<'a>(
         &'a self,
