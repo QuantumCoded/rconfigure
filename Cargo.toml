@@ -16,3 +16,7 @@ thiserror = "1.0.30"
 toml = "0.5.8"
 
 [features]
+
+[[bin]]
+name = "rconf"
+path = "src/main.rs"
