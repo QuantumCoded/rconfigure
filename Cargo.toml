@@ -9,6 +9,7 @@ edition = "2018"
 clap = "2.33.3"
 dirs = "4.0.0"
 far = "0.1.0"
+main_error = "0.1.2"
 quiz = "0.0.3"
 rhai = { version = "1.1.0", features = ["serde"] }
 serde = { version = "1.0.130", features = ["derive"] }
