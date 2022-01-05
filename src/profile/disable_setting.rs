@@ -1,33 +1,29 @@
+use crate::errors::CrateError;
 use crate::profile::{Profile, ProfileDeserialized, ProfileTable};
-use crate::setting;
+use crate::{errors::ProfileError, setting};
 use dirs::config_dir;
 use std::{fs, path::Path};
 
 impl Profile {
-    pub fn disable_setting<P: AsRef<Path>>(&mut self, path: P) {
+    pub fn disable_setting<P: AsRef<Path>>(&mut self, path: P) -> Result<(), CrateError> {
         let setting = setting::parse(&path);
         self.settings.retain(|s| s.path() != setting.path());
 
         let path = if path.as_ref().is_absolute() {
             path.as_ref().to_owned()
         } else {
-            // FIXME: better error handling
             config_dir()
-                .expect("config dir borked")
+                .ok_or_else(|| CrateError::NoConfigDir)?
                 .join("rconfigure/profiles")
                 .join(path)
         };
 
-        // FIXME: handle errors for file not found
-        let s = fs::read_to_string(&self.path).unwrap();
-        let mut profile: ProfileDeserialized = match toml::from_str(s.as_str()) {
-            Ok(value) => value,
-            Err(e) => {
-                println!("error when parsing setting {:?}", path);
-                println!("{}", e);
-                std::process::exit(1);
-            }
-        };
+        // FIXME: maybe add a specific thing for file not found
+        let s = fs::read_to_string(&self.path)
+            .map_err(|err| ProfileError::ErrorReadingProfile(self.path.to_owned(), err))?;
+
+        let mut profile: ProfileDeserialized =
+            toml::from_str(s.as_str())?; // .map_err(|err| -> ProfileError { err.into() })?;
 
         if let Some(ProfileTable {
             settings: Some(ref mut settings),
@@ -48,10 +44,11 @@ impl Profile {
             *settings = settings_buf;
         }
 
-        fs::write(
-            &self.path,
-            toml::to_string(&profile).expect("failed to serialize profile"),
-        )
-        .unwrap();
+        let contents = toml::to_string(&profile)?; // .map_err(|err| -> ProfileError { err.into() })?;
+
+        fs::write(&self.path, contents)
+            .map_err(|err| ProfileError::ErrorWritingProfile(self.path.to_owned(), err))?;
+
+        Ok(())
     }
 }

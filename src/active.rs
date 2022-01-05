@@ -1,4 +1,7 @@
-use crate::profile::{self, Profile};
+use crate::{
+    errors::CrateError,
+    profile::{self, Profile},
+};
 use dirs::config_dir;
 use serde::{Deserialize, Serialize};
 use std::{
@@ -14,13 +17,12 @@ struct Active {
     active: bool,
 }
 
-pub fn set_active_profile<P: AsRef<Path>>(path: P) {
+pub fn set_active_profile<P: AsRef<Path>>(path: P) -> Result<(), CrateError> {
     let path = if path.as_ref().is_absolute() {
         path.as_ref().to_owned()
     } else {
-        // FIXME: better error handling
         config_dir()
-            .expect("config dir borked")
+            .ok_or_else(|| CrateError::NoConfigDir)?
             .join("rconfigure/profiles")
             .join(path)
     };
@@ -33,11 +35,13 @@ pub fn set_active_profile<P: AsRef<Path>>(path: P) {
     // FIXME: better error handling
     fs::write(
         config_dir()
-            .expect("config dir borked")
+            .ok_or_else(|| CrateError::NoConfigDir)?
             .join("rconfigure/active.toml"),
-        toml::to_string(&active).expect("failed to serialize"),
+        toml::to_string(&active)?,
     )
     .unwrap();
+
+    Ok(())
 }
 
 pub fn unset_active_profile() {
@@ -45,26 +49,32 @@ pub fn unset_active_profile() {
     todo!("unset active profile");
 }
 
-pub fn get_active_profile() -> Option<Profile> {
-    // FIXME: better error handling
+pub fn get_active_profile() -> Result<Option<Profile>, CrateError> {
     let path = config_dir()
-        .expect("config dir borked")
+        .ok_or_else(|| CrateError::NoConfigDir)?
         .join("rconfigure/active.toml");
 
-    // FIXME: handle errors for file not found
-    let s = fs::read_to_string(&path).unwrap();
-    let active: Active = match toml::from_str(s.as_str()) {
-        Ok(value) => value,
-        Err(e) => {
-            println!("error when parsing active.toml");
-            println!("{}", e);
-            std::process::exit(1);
+    let s = match fs::read_to_string(&path) {
+        Ok(s) => s,
+        Err(err) => {
+            use std::io::ErrorKind;
+
+            match err.kind() {
+                ErrorKind::NotFound => {
+                    fs::write(path, "")?;
+                    String::new()
+                }
+
+                _ => return Err(err.into()),
+            }
         }
     };
 
-    if active.active {
+    let active: Active = toml::from_str(s.as_str())?;
+
+    Ok(if active.active {
         Some(profile::parse(active.profile))
     } else {
         None
-    }
+    })
 }
