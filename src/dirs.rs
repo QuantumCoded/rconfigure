@@ -49,27 +49,27 @@ pub fn hooks_dir() -> DirResult {
 pub fn profiles_dir() -> DirResult {
     Ok(concat(
         config_dir()?,
-        "hooks",
+        "profiles",
     )?)
 }
 
 pub fn scripts_dir() -> DirResult {
     Ok(concat(
         config_dir()?,
-        "hooks",
+        "scripts",
     )?)
 }
 
 pub fn settings_dir() -> DirResult {
     Ok(concat(
         config_dir()?,
-        "hooks",
+        "settings",
     )?)
 }
 
 pub fn templates_dir() -> DirResult {
     Ok(concat(
         config_dir()?,
-        "hooks",
+        "templates",
     )?)
 }
