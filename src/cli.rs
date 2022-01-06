@@ -1,6 +1,6 @@
 use clap::ArgMatches;
 
-fn matches<'a>() -> ArgMatches<'a> {
+fn matches() -> ArgMatches {
     app_from_crate!().get_matches()
 }
 
