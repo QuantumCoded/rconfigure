@@ -15,9 +15,9 @@ pub enum Error {
     PathIsNotADir(PathBuf),
 }
 
-type DirResult = Result<PathBuf, Error>;
+type Result<T> = std::result::Result<T, Error>;
 
-fn concat<P: AsRef<Path>>(path: PathBuf, dir: P) -> DirResult {
+fn concat<P: AsRef<Path>>(path: PathBuf, dir: P) -> Result<PathBuf> {
     let path = path.join(dir);
 
     if !path.exists() {
@@ -32,42 +32,42 @@ fn concat<P: AsRef<Path>>(path: PathBuf, dir: P) -> DirResult {
     }
 }
 
-pub fn config_dir() -> DirResult {
+pub fn config_dir() -> Result<PathBuf> {
     Ok(concat(
         os_config_dir().ok_or(Error::NoOSConfigDir)?,
         "rconfigure",
     )?)
 }
 
-pub fn hooks_dir() -> DirResult {
+pub fn hooks_dir() -> Result<PathBuf> {
     Ok(concat(
         config_dir()?,
         "hooks",
     )?)
 }
 
-pub fn profiles_dir() -> DirResult {
+pub fn profiles_dir() -> Result<PathBuf> {
     Ok(concat(
         config_dir()?,
         "profiles",
     )?)
 }
 
-pub fn scripts_dir() -> DirResult {
+pub fn scripts_dir() -> Result<PathBuf> {
     Ok(concat(
         config_dir()?,
         "scripts",
     )?)
 }
 
-pub fn settings_dir() -> DirResult {
+pub fn settings_dir() -> Result<PathBuf> {
     Ok(concat(
         config_dir()?,
         "settings",
     )?)
 }
 
-pub fn templates_dir() -> DirResult {
+pub fn templates_dir() -> Result<PathBuf> {
     Ok(concat(
         config_dir()?,
         "templates",
