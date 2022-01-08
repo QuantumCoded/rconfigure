@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate clap;
 
+mod bool_false_as_none;
 mod cli;
 mod dirs;
 mod error;
