@@ -14,7 +14,7 @@ pub enum Error {
     #[error("there is no file named {name:?} or {name:?}.toml in {parent:?}")]
     FileNotFound { name: OsString, parent: PathBuf },
 
-    #[error("profile paths must not be '/' or terminate in '..', found: {0:?}")]
+    #[error("setting paths must not be '/' or terminate in '..', found: {0:?}")]
     RootOrPrefix(PathBuf),
 
     #[error("io error when reading setting: {0}")]
