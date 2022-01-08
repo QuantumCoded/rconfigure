@@ -27,8 +27,9 @@ pub enum Error {
     SettingError(#[from] crate::setting::Error),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 struct ProfileTable {
+    #[serde(default)]
     name: Option<String>,
     #[serde(default)]
     settings: Vec<String>,
@@ -38,7 +39,7 @@ struct ProfileTable {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct ProfileData {
-    #[serde(rename = "profile")]
+    #[serde(rename = "profile", default)]
     table: ProfileTable,
 }
 
