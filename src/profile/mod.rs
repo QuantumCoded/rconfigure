@@ -29,7 +29,6 @@ pub enum Error {
 
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct ProfileTable {
-    #[serde(default)]
     name: Option<String>,
     #[serde(default)]
     settings: Vec<String>,
