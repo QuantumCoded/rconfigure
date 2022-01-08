@@ -35,7 +35,7 @@ pub enum Value {
     Script { script: String, value: Box<Value> },
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, Default)]
 struct SettingTable {
     name: Option<String>,
     #[serde(default)]
@@ -44,7 +44,7 @@ struct SettingTable {
 
 #[derive(Deserialize, Serialize, Debug)]
 struct SettingData {
-    #[serde(rename = "setting")]
+    #[serde(rename = "setting", default)]
     table: SettingTable,
     #[serde(default)]
     global: HashMap<String, Value>,
