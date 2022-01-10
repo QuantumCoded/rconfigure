@@ -7,7 +7,6 @@ mod dirs;
 mod error;
 mod path;
 mod profile;
-mod script;
 mod setting;
 mod value;
 

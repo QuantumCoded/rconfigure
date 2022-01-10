@@ -1,4 +1,4 @@
-use crate::dirs::settings_dir;
+use crate::{dirs::settings_dir, value::Value};
 use crate::path::{find_config_file, force_absolute};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+/// The error type for interacting with settings.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -24,17 +25,7 @@ pub enum Error {
     DeserializeError(#[from] toml::de::Error),
 }
 
-#[derive(Deserialize, Serialize, Debug)]
-#[serde(untagged)]
-pub enum Value {
-    Boolean(bool),
-    Integer(i64),
-    Float(f64),
-    String(String),
-    Array(Vec<Value>),
-    Script { script: String, value: Box<Value> },
-}
-
+/// The `[setting]` table in a setting file.
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct SettingTable {
     name: Option<String>,
@@ -42,6 +33,7 @@ struct SettingTable {
     hooks: Vec<String>,
 }
 
+/// The deserialized representation of a setting file.
 #[derive(Deserialize, Serialize, Debug)]
 struct SettingData {
     #[serde(rename = "setting", default)]
@@ -52,6 +44,7 @@ struct SettingData {
     targets: HashMap<PathBuf, HashMap<String, Value>>,
 }
 
+/// The container for raw setting file data, provides helpful methods for processing settings.
 #[derive(Debug)]
 pub struct Setting {
     data: SettingData,
@@ -59,6 +52,7 @@ pub struct Setting {
 }
 
 impl Setting {
+    /// Creates a `Setting` using data loaded from the setting at `path`.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Setting, Error> {
         let path = find_config_file(force_absolute(path.as_ref().to_owned(), settings_dir()?))
             .ok_or(Error::FileNotFound {

@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
 
+/// The error type for interacting with profiles.
 #[derive(Error, Debug)]
 pub enum Error {
     #[error("{0}")]
@@ -27,6 +28,7 @@ pub enum Error {
     SettingError(#[from] crate::setting::Error),
 }
 
+/// The `[profile]` table in a profile file.
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct ProfileTable {
     name: Option<String>,
@@ -36,12 +38,14 @@ struct ProfileTable {
     hooks: Vec<String>,
 }
 
+/// The deserialized representation of a profile file.
 #[derive(Deserialize, Serialize, Debug)]
 struct ProfileData {
     #[serde(rename = "profile", default)]
     table: ProfileTable,
 }
 
+/// The container for raw profile file data, provides helpful methods for processing profiles.
 #[derive(Debug)]
 pub struct Profile {
     data: ProfileData,
@@ -49,6 +53,7 @@ pub struct Profile {
 }
 
 impl Profile {
+    /// Creates a `Profile` using data loaded from the profile at `path`.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Profile, Error> {
         let path = find_config_file(force_absolute(path.as_ref().to_owned(), profiles_dir()?))
             .ok_or(Error::FileNotFound {
@@ -71,8 +76,10 @@ impl Profile {
         })
     }
 
+    /// The name of the profile.
     fn name(&self) {}
 
+    /// The settings in the profile.
     fn settings(&self) -> Result<Vec<Setting>, Error> {
         Ok(self
             .data
@@ -83,5 +90,9 @@ impl Profile {
             .collect::<Result<Vec<_>, crate::setting::Error>>()?)
     }
 
+    /// The hooks file in the profile.
     fn hooks(&self) {}
+
+    /// The hooked events from the hooks file.
+    fn hooked(&self) {}
 }

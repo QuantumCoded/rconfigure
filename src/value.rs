@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// The values in settings and profiles, used for templating
+/// The values in settings and profiles, used for templating.
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum Value {
@@ -14,7 +14,7 @@ pub enum Value {
     MultiLineString(Vec<String>),
 }
 
-/// The values passed into rhai scripts, used for processing
+/// The values passed into rhai scripts, used for processing, can also be a [`Value`].
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum ScriptValue {
