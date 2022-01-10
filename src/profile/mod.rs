@@ -1,30 +1,27 @@
-use crate::path::{find_config_file, force_absolute};
-use crate::{dirs::profiles_dir, setting::Setting, value::Value, hooks::Hook};
+use crate::path::resolve;
+use crate::{dirs::profiles_dir, hooks::Hook, setting::Setting, value::Value};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::{collections::HashMap, ffi::OsString};
 use thiserror::Error;
 
 /// The error type for interacting with profiles.
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("{0}")]
+    #[error("failed to get profiles directory")]
     DirError(#[from] crate::dirs::Error),
 
-    #[error("there is no file named {name:?} or {name:?}.toml in {parent:?}")]
-    FileNotFound { name: OsString, parent: PathBuf },
+    #[error("failed to resolve profile path")]
+    PathError(#[from] crate::path::Error),
 
-    #[error("profile paths must not be '/' or terminate in '..', found: {0:?}")]
-    RootOrPrefix(PathBuf),
-
-    #[error("io error when reading profile: {0}")]
-    IOError(#[from] std::io::Error),
-
-    #[error("error deserializing profile: {0}")]
-    DeserializeError(#[from] toml::de::Error),
-
-    #[error("error creating setting: {0}")]
+    #[error("failed to create setting")]
     SettingError(#[from] crate::setting::Error),
+
+    #[error("failed to read profile {path:?}\ncaused by: {err}")]
+    IOError { path: PathBuf, err: std::io::Error },
+
+    #[error("failed to deserialize profile {path:?}\ncaused by: {err}")]
+    DeserializeError { path: PathBuf, err: toml::de::Error },
 }
 
 /// The `[profile]` table in a profile file.
@@ -64,23 +61,19 @@ pub struct Profile {
 impl Profile {
     /// Creates a `Profile` using data loaded from the profile at `path`.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Profile, Error> {
-        let path = find_config_file(force_absolute(path.as_ref().to_owned(), profiles_dir()?))
-            .ok_or(Error::FileNotFound {
-                name: path
-                    .as_ref()
-                    .file_name()
-                    .ok_or(Error::RootOrPrefix(path.as_ref().to_owned()))?
-                    .to_owned(),
-
-                parent: path
-                    .as_ref()
-                    .parent()
-                    .ok_or(Error::RootOrPrefix(path.as_ref().to_owned()))?
-                    .to_owned(),
-            })?;
+        let path = resolve(path, profiles_dir()?)?;
 
         Ok(Profile {
-            data: toml::from_str(&std::fs::read_to_string(&path)?)?,
+            data: toml::from_str(&std::fs::read_to_string(&path).map_err(|err| {
+                Error::IOError {
+                    path: path.clone(),
+                    err,
+                }
+            })?)
+            .map_err(|err| Error::DeserializeError {
+                path: path.clone(),
+                err,
+            })?,
             path,
         })
     }
@@ -89,7 +82,7 @@ impl Profile {
     fn name(&self) {}
 
     /// The settings in the profile.
-    fn settings(&self) -> Result<Vec<Setting>, Error> {
+    pub fn settings(&self) -> Result<Vec<Setting>, Error> {
         Ok(self
             .data
             .table

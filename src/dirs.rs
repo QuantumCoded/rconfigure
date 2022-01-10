@@ -6,13 +6,13 @@ use thiserror::Error;
 /// The error type for interacting with config directories.
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("could not find the os level config dir")]
+    #[error("failed to find the os level config dir")]
     NoOSConfigDir,
 
-    #[error("failed to create directory {0:?}, {1}")]
+    #[error("failed to create directory {0:?}: {1}")]
     FailedToCreateDir(PathBuf, std::io::Error),
 
-    #[error("the path {0:?} was expected to be a directory, but is not")]
+    #[error("{0:?} is not a directory")]
     PathIsNotADir(PathBuf),
 }
 

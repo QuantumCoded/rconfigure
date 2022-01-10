@@ -1,9 +1,8 @@
 use crate::bool_false_as_none;
 use crate::dirs::hooks_dir;
-use crate::path::{find_config_file, force_absolute};
+use crate::path::resolve;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ffi::OsString;
 use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -11,20 +10,17 @@ use thiserror::Error;
 /// The error type for interacting with hooks.
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("{0}")]
+    #[error("failed to get hooks directory")]
     DirError(#[from] crate::dirs::Error),
 
-    #[error("there is no file named {name:?} or {name:?}.toml in {parent:?}")]
-    FileNotFound { name: OsString, parent: PathBuf },
+    #[error("failed to resolve path hook path")]
+    PathError(#[from] crate::path::Error),
 
-    #[error("profile paths must not be '/' or terminate in '..', found: {0:?}")]
-    RootOrPrefix(PathBuf),
+    #[error("failed to read hook {path:?}\ncause by: {err}")]
+    IOError { path: PathBuf, err: std::io::Error },
 
-    #[error("io error when reading hook: {0}")]
-    IOError(#[from] std::io::Error),
-
-    #[error("error deserializing hook: {0}")]
-    DeserializeError(#[from] toml::de::Error),
+    #[error("failed to deserialize hook {path:?}\ncaused by: {err}")]
+    DeserializeError { path: PathBuf, err: toml::de::Error },
 }
 
 /// Implementation of `the bool_false_as_none` serializer and deserializer.
@@ -82,24 +78,19 @@ pub struct Hooks {
 
 impl Hooks {
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Hooks, Error> {
-        let path = find_config_file(force_absolute(path.as_ref().to_owned(), hooks_dir()?)).ok_or(
-            Error::FileNotFound {
-                name: path
-                    .as_ref()
-                    .file_name()
-                    .ok_or(Error::RootOrPrefix(path.as_ref().to_owned()))?
-                    .to_owned(),
-
-                parent: path
-                    .as_ref()
-                    .parent()
-                    .ok_or(Error::RootOrPrefix(path.as_ref().to_owned()))?
-                    .to_owned(),
-            },
-        )?;
+        let path = resolve(path, hooks_dir()?)?;
 
         Ok(Hooks {
-            data: toml::from_str(&std::fs::read_to_string(&path)?)?,
+            data: toml::from_str(&std::fs::read_to_string(&path).map_err(|err| {
+                Error::IOError {
+                    path: path.clone(),
+                    err,
+                }
+            })?)
+            .map_err(|err| Error::DeserializeError {
+                path: path.clone(),
+                err,
+            })?,
             path,
         })
     }
