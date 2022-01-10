@@ -17,8 +17,8 @@ pub enum Error {
 
 type Result<T> = std::result::Result<T, Error>;
 
-fn concat<P: AsRef<Path>>(path: PathBuf, dir: P) -> Result<PathBuf> {
-    let path = path.join(dir);
+fn concat(path: impl AsRef<Path>, dir: impl AsRef<Path>) -> Result<PathBuf> {
+    let path = path.as_ref().join(dir);
 
     if !path.exists() {
         create_dir(&path).map_err(|err| Error::FailedToCreateDir(path.clone(), err))?;
