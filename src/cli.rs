@@ -9,11 +9,5 @@ fn matches() -> ArgMatches {
 pub fn run() -> Result<(), crate::error::Error> {
     let _matches = matches();
 
-    let p = crate::profile::Profile::new("default")?;
-    let s = p.settings()?;
-
-    println!("{:#?}", p);
-    println!("{:#?}", s);
-
     Ok(())
 }
