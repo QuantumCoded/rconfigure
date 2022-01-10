@@ -1,9 +1,8 @@
-use crate::dirs::profiles_dir;
 use crate::path::{find_config_file, force_absolute};
-use crate::setting::Setting;
+use crate::{dirs::profiles_dir, setting::Setting, value::Value, hooks::Hook};
 use serde::{Deserialize, Serialize};
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::{collections::HashMap, ffi::OsString};
 use thiserror::Error;
 
 /// The error type for interacting with profiles.
@@ -34,8 +33,16 @@ struct ProfileTable {
     name: Option<String>,
     #[serde(default)]
     settings: Vec<String>,
+    hooks: Option<PathBuf>,
     #[serde(default)]
-    hooks: Vec<String>,
+    hook: Vec<Hook>,
+}
+
+/// The `[values]` table in a profile file.
+#[derive(Deserialize, Serialize, Debug, Default)]
+struct ProfileValues {
+    #[serde(flatten, rename = "values")]
+    map: HashMap<String, Value>,
 }
 
 /// The deserialized representation of a profile file.
@@ -43,6 +50,8 @@ struct ProfileTable {
 struct ProfileData {
     #[serde(rename = "profile", default)]
     table: ProfileTable,
+    #[serde(default)]
+    values: ProfileValues,
 }
 
 /// The container for raw profile file data, provides helpful methods for processing profiles.

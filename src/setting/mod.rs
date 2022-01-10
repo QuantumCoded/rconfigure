@@ -29,8 +29,9 @@ pub enum Error {
 #[derive(Deserialize, Serialize, Debug, Default)]
 struct SettingTable {
     name: Option<String>,
+    hooks: Option<PathBuf>,
     #[serde(default)]
-    hooks: Vec<String>,
+    hook: Vec<String>,
 }
 
 /// The deserialized representation of a setting file.

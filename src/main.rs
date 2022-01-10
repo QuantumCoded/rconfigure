@@ -5,6 +5,7 @@ mod bool_false_as_none;
 mod cli;
 mod dirs;
 mod error;
+mod hooks;
 mod path;
 mod profile;
 mod setting;
