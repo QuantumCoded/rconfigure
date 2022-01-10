@@ -1,4 +1,4 @@
-use crate::{dirs::templates_dir, path::resolve};
+use crate::{dirs::templates_dir, path::force_absolute};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -33,13 +33,28 @@ pub struct Template {
 impl Template {
     /// Creates a `Template` using data loaded from the template at `path`.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Template, Error> {
-        let path = resolve(path, templates_dir()?)?;
+        let path = force_absolute(path, templates_dir()?);
 
-        let data = std::fs::read_to_string(&path)
-            .map_err(|err| Error::IOError {
-                path: path.clone(),
-                err,
+        if !path.exists() {
+            use crate::path::Error;
+
+            Err(Error::FileNotFound {
+                name: path
+                    .file_name()
+                    .ok_or(Error::RootOrPrefix(path.clone()))?
+                    .to_owned(),
+
+                path: path
+                    .parent()
+                    .ok_or(Error::RootOrPrefix(path.clone()))?
+                    .to_owned(),
             })?;
+        }
+
+        let data = std::fs::read_to_string(&path).map_err(|err| Error::IOError {
+            path: path.clone(),
+            err,
+        })?;
 
         let mut lines = data.lines().peekable();
 
@@ -68,7 +83,7 @@ impl Template {
         })
     }
 
-    pub fn generate(&self, _map: HashMap<String, String>) -> Result<Template, Error> {
+    pub fn generate(&self, _map: HashMap<String, String>) -> Result<String, Error> {
         todo!()
     }
 }
