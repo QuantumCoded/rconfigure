@@ -1,4 +1,5 @@
 use crate::{dirs::templates_dir, path::force_absolute};
+use far::far as find_and_replace;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
@@ -20,6 +21,9 @@ pub enum Error {
 
     #[error("template file empty {0:?}")]
     EmptyTemplateError(PathBuf),
+
+    #[error("failed find and replace of template {path:?}\ncaused by:\n{errs}")]
+    FindAndReplaceError { path: PathBuf, errs: String },
 }
 
 #[derive(Debug)]
@@ -27,12 +31,13 @@ pub enum Error {
 pub struct Template {
     output: PathBuf,
     content: String,
+    map: HashMap<String, String>,
     path: PathBuf,
 }
 
 impl Template {
     /// Creates a `Template` using data loaded from the template at `path`.
-    pub fn new<P: AsRef<Path>>(path: P) -> Result<Template, Error> {
+    pub fn new<P: AsRef<Path>>(path: P, map: HashMap<String, String>) -> Result<Template, Error> {
         let path = force_absolute(path, templates_dir()?);
 
         if !path.exists() {
@@ -80,10 +85,27 @@ impl Template {
             output: header.to_owned(),
             content,
             path,
+            map,
         })
     }
 
-    pub fn generate(&self, _map: HashMap<String, String>) -> Result<String, Error> {
-        todo!()
+    pub fn far(&self) -> Result<String, Error> {
+        Ok(find_and_replace(
+            &self.content,
+            &self
+                .map
+                .iter()
+                .map(|(a, b)| (a.as_str(), b.as_str()))
+                .collect::<HashMap<&str, &str>>(),
+        )
+        .map_err(|errs| Error::FindAndReplaceError {
+            path: self.path.clone(),
+            errs: errs
+                .into_inner()
+                .into_iter()
+                .map(|err| format!("    {}", err))
+                .collect::<Vec<_>>()
+                .join("\n"),
+        })?)
     }
 }
