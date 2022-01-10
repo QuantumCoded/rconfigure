@@ -10,6 +10,7 @@ mod hooks;
 mod path;
 mod profile;
 mod setting;
+mod template;
 mod value;
 
 fn main() -> Result<(), main_error::MainError> {
