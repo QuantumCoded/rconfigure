@@ -22,6 +22,7 @@ pub enum Error {
     EmptyTemplateError(PathBuf),
 }
 
+#[derive(Debug)]
 /// The container for raw template file data, provides helpful methods for processing templates.
 pub struct Template {
     output: PathBuf,
