@@ -9,6 +9,7 @@ mod path;
 mod profile;
 mod script;
 mod setting;
+mod value;
 
 fn main() -> Result<(), main_error::MainError> {
     Ok(cli::run()?)
