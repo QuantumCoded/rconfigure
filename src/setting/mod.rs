@@ -1,9 +1,12 @@
-use crate::path::resolve;
-use crate::{dirs::settings_dir, value::Value};
+use crate::dirs::{settings_dir, templates_dir};
+use crate::path::{force_absolute, resolve};
+use crate::value::Value;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use thiserror::Error;
+
+mod compose_template_map;
 
 /// The error type for interacting with settings.
 #[derive(Error, Debug)]
@@ -66,5 +69,19 @@ impl Setting {
             })?,
             path,
         })
+    }
+
+    /// Gets the setting targets with absolute paths.
+    pub fn targets(&self) -> Result<HashMap<PathBuf, HashMap<String, Value>>, Error> {
+        Ok(self
+            .data
+            .targets
+            .iter()
+            .map(
+                |(p, v)| -> Result<(PathBuf, HashMap<String, Value>), Error> {
+                    Ok((force_absolute(p, templates_dir()?), v.to_owned()))
+                },
+            )
+            .collect::<Result<_, Error>>()?)
     }
 }
