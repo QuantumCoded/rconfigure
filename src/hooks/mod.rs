@@ -77,6 +77,7 @@ pub struct Hooks {
 }
 
 impl Hooks {
+    /// Creates a `Hooks` using data loaded from the hooks at `path`.
     pub fn new<P: AsRef<Path>>(path: P) -> Result<Hooks, Error> {
         let path = resolve(path, hooks_dir()?)?;
 

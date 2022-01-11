@@ -14,7 +14,7 @@ pub enum Value {
     MultiLineString(Vec<String>),
 }
 
-/// The values passed into rhai scripts, used for processing, can also be a [`Value`].
+/// The values passed into rhai scripts, used for processing, can also be a `Value`.
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(untagged)]
 pub enum ScriptValue {

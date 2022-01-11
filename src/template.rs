@@ -89,6 +89,7 @@ impl Template {
         })
     }
 
+    /// Uses find and replace and returns the edited result or errors.
     pub fn far(&self) -> Result<String, Error> {
         Ok(find_and_replace(
             &self.content,
